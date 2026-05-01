@@ -1,0 +1,108 @@
+name: Init Spring Kotlin API
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-project:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract repository name
+        run: |
+          REPO_NAME=${GITHUB_REPOSITORY#*/}
+          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+
+      - name: Generate Spring Project
+        run: |
+          curl https://start.spring.io/starter.zip \
+            -d type=gradle-project \
+            -d language=kotlin \
+            -d groupId=com.example \
+            -d artifactId=${REPO_NAME} \
+            -d name=${REPO_NAME} \
+            -d packageName=com.example.demo \
+            -d dependencies=web,data-jpa,postgresql \
+            -o project.zip
+
+      - name: Unzip to root
+        run: |
+          unzip project.zip -d tmp
+          mv tmp/*/* .
+          rm -rf tmp project.zip
+
+      - name: Add Swagger
+        run: |
+          cat <<EOF >> build.gradle.kts
+
+          dependencies {
+              implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0")
+          }
+          EOF
+
+      - name: Add application.yml
+        run: |
+          mkdir -p src/main/resources
+          cat <<EOF > src/main/resources/application.yml
+          spring:
+            datasource:
+              url: jdbc:postgresql://localhost:5432/testdb
+              username: postgres
+              password: postgres
+            jpa:
+              hibernate:
+                ddl-auto: update
+              show-sql: true
+          logging:
+            level:
+              root: INFO
+          EOF
+
+      - name: Add logback config
+        run: |
+          cat <<EOF > src/main/resources/logback-spring.xml
+          <configuration>
+              <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+                  <encoder>
+                      <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+                  </encoder>
+              </appender>
+
+              <root level="INFO">
+                  <appender-ref ref="STDOUT"/>
+              </root>
+          </configuration>
+          EOF
+
+      - name: Add Sample Controller
+        run: |
+          mkdir -p src/main/kotlin/com/example/demo/controller
+          cat <<EOF > src/main/kotlin/com/example/demo/controller/HelloController.kt
+          package com.example.demo.controller
+
+          import org.springframework.web.bind.annotation.GetMapping
+          import org.springframework.web.bind.annotation.RestController
+
+          @RestController
+          class HelloController {
+
+              @GetMapping("/hello")
+              fun hello(): String {
+                  return "Hello, Kotlin + Spring!"
+              }
+          }
+          EOF
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Initialize Spring Kotlin API project (root layout)" || echo "No changes"
+          git push
