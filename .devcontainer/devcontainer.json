@@ -1,0 +1,17 @@
+{
+  "name": "testKotlinFromSapporo",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [8080, 5432],
+  "postCreateCommand": "./gradlew build",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "redhat.vscode-yaml"
+      ]
+    }
+  }
+}
