@@ -1,0 +1,103 @@
+name: Add DevContainer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-devcontainer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract repository name
+        run: |
+          REPO_NAME=${GITHUB_REPOSITORY#*/}
+          echo "REPO_NAME=$REPO_NAME" >> $GITHUB_ENV
+
+      - name: Detect project directory
+        run: |
+          if [ -d "$REPO_NAME" ]; then
+            echo "PROJECT_DIR=$REPO_NAME" >> $GITHUB_ENV
+          else
+            echo "PROJECT_DIR=." >> $GITHUB_ENV
+          fi
+
+      - name: Create devcontainer directory
+        run: mkdir -p .devcontainer
+
+      - name: Create devcontainer.json
+        run: |
+          cat <<EOF > .devcontainer/devcontainer.json
+          {
+            "name": "${REPO_NAME}",
+            "dockerComposeFile": "docker-compose.yml",
+            "service": "app",
+            "workspaceFolder": "/workspace",
+            "forwardPorts": [8080, 5432],
+            "postCreateCommand": "./gradlew build",
+            "customizations": {
+              "vscode": {
+                "extensions": [
+                  "vscjava.vscode-java-pack",
+                  "vmware.vscode-spring-boot",
+                  "redhat.vscode-yaml"
+                ]
+              }
+            }
+          }
+          EOF
+
+      - name: Create docker-compose.yml
+        run: |
+          cat <<EOF > .devcontainer/docker-compose.yml
+          version: '3.8'
+
+          services:
+            app:
+              build:
+                context: ..
+                dockerfile: .devcontainer/Dockerfile
+              volumes:
+                - ..:/workspace:cached
+              command: sleep infinity
+              depends_on:
+                - db
+
+            db:
+              image: postgres:15
+              restart: unless-stopped
+              environment:
+                POSTGRES_DB: testdb
+                POSTGRES_USER: postgres
+                POSTGRES_PASSWORD: postgres
+              ports:
+                - "5432:5432"
+          EOF
+
+      - name: Create Dockerfile
+        run: |
+          cat <<EOF > .devcontainer/Dockerfile
+          FROM mcr.microsoft.com/devcontainers/java:1-21
+
+          RUN apt-get update && apt-get install -y \
+              curl \
+              unzip
+
+          WORKDIR /workspace
+          EOF
+
+      - name: Update application.yml for container DB
+        run: |
+          if [ -f "${PROJECT_DIR}/src/main/resources/application.yml" ]; then
+            sed -i 's/localhost/db/' ${PROJECT_DIR}/src/main/resources/application.yml
+          fi
+
+      - name: Commit & Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Add devcontainer configuration (dynamic repo name)" || echo "No changes"
+          git push
