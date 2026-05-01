@@ -1,10 +1,10 @@
 name: Init Spring Kotlin API
 
-permissions:
-  contents: write
-
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   setup-project:
@@ -31,10 +31,13 @@ jobs:
             -d dependencies=web,data-jpa,postgresql \
             -o project.zip
 
-      - name: Unzip to root
+      - name: Unzip safely to root
         run: |
           unzip project.zip -d tmp
-          mv tmp/*/* .
+          PROJECT_DIR=$(find tmp -mindepth 1 -maxdepth 1 -type d)
+
+          shopt -s dotglob
+          mv "$PROJECT_DIR"/* .
           rm -rf tmp project.zip
 
       - name: Add Swagger
@@ -104,5 +107,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add .
-          git commit -m "Initialize Spring Kotlin API project (root layout)" || echo "No changes"
+          git commit -m "Initialize Spring Kotlin API project (safe root layout)" || echo "No changes"
           git push
