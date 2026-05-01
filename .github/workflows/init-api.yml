@@ -31,16 +31,26 @@ jobs:
             -d dependencies=web,data-jpa,postgresql \
             -o project.zip
 
-      - name: Unzip safely to root
+      - name: Unzip safely (support both structures)
         run: |
           unzip project.zip -d tmp
-          PROJECT_DIR=$(find tmp -mindepth 1 -maxdepth 1 -type d)
+
+          DIR_COUNT=$(find tmp -mindepth 1 -maxdepth 1 -type d | wc -l)
 
           shopt -s dotglob
-          mv "$PROJECT_DIR"/* .
+
+          if [ "$DIR_COUNT" -eq 1 ] && [ -f tmp/*/build.gradle.kts ]; then
+            # パターン①：トップディレクトリあり
+            PROJECT_DIR=$(find tmp -mindepth 1 -maxdepth 1 -type d)
+            mv "$PROJECT_DIR"/* .
+          else
+            # パターン②：直下展開
+            mv tmp/* .
+          fi
+
           rm -rf tmp project.zip
 
-      - name: Add Swagger
+      - name: Add Swagger (springdoc)
         run: |
           cat <<EOF >> build.gradle.kts
 
@@ -107,5 +117,5 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add .
-          git commit -m "Initialize Spring Kotlin API project (safe root layout)" || echo "No changes"
+          git commit -m "Initialize Spring Kotlin API project (stable version)" || echo "No changes"
           git push
