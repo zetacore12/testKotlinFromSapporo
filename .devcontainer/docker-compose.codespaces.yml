@@ -1,5 +1,5 @@
 {
-  "name": "testKotlinFromSapporo",
+  "name": "testKotlinFromSapporo(codespaces)",
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
