@@ -6,17 +6,14 @@ services:
       context: ..
       dockerfile: .devcontainer/Dockerfile
     volumes:
-      - ..:/workspace:cached
+      - ..:/workspaces/${LOCAL_WORKSPACE_FOLDER_BASENAME}:cached
     command: sleep infinity
     depends_on:
       - db
 
   db:
     image: postgres:15
-    restart: unless-stopped
     environment:
       POSTGRES_DB: testdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
