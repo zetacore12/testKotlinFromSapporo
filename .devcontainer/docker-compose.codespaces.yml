@@ -1,17 +1,10 @@
-{
-  "name": "testKotlinFromSapporo(codespaces)",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "app",
-  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "forwardPorts": [8080, 5432],
-  "postCreateCommand": "./gradlew build",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "vscjava.vscode-java-pack",
-        "vmware.vscode-spring-boot",
-        "redhat.vscode-yaml"
-      ]
-    }
-  }
-}
+version: '3.8'
+
+services:
+  app:
+    # Codespaces特有の設定があればここに追加
+    # 例：ポート公開など
+
+  db:
+    ports:
+      - "5432:5432"
